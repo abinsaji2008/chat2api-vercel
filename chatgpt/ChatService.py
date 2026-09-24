@@ -1,13 +1,26 @@
-import hashlib
-import random
 import uuid
+import random
 from fastapi import HTTPException
+
 from chatgpt.fp import get_fp
 from chatgpt.proofofWork import get_dpl
-from chatgpt.chatFormat import api_messages_to_chat, stream_response, format_not_stream_response, head_process_response
+from chatgpt.chatFormat import (
+    api_messages_to_chat,
+    stream_response,
+    format_not_stream_response,
+    head_process_response,
+)
 from api.models import model_proxy
 from utils.Client import Client
-from utils.configs import chatgpt_base_url_list, chatgpt_cookie_dict, history_disabled, upload_by_url, auth_key, oai_language
+from utils.configs import (
+    chatgpt_base_url_list,
+    chatgpt_cookie_dict,
+    history_disabled,
+    upload_by_url,
+    auth_key,
+    oai_language,
+)
+
 
 class ChatService:
     def __init__(self, origin_token=None):
@@ -19,7 +32,7 @@ class ChatService:
         self.data = data
         self.fp = get_fp(self.req_token)
         self.proxy_url = self.fp.pop("proxy_url", None)
-        self.impersonate = self.fp.pop("impersonate", "safari15_3")
+        self.impersonate = self.fp.pop("impersonate", "chrome124")
         self.user_agent = self.fp.get("user-agent")
         self.origin_model = data.get("model", "gpt-4o")
         self.resp_model = model_proxy.get(self.origin_model, self.origin_model)
@@ -31,9 +44,15 @@ class ChatService:
         self.api_messages = data.get("messages", [])
         self.max_tokens = data.get("max_tokens", 2147483647)
         self.host_url = random.choice(chatgpt_base_url_list)
-        self.s = Client(proxy=self.proxy_url, impersonate=self.impersonate, cookies=chatgpt_cookie_dict)
+
+        self.s = Client(
+            proxy=self.proxy_url,
+            impersonate=self.impersonate,
+            cookies=chatgpt_cookie_dict,
+        )
         self.ss = self.s
         self.base_url = self.host_url + "/backend-api"
+
         self.base_headers = {
             "accept": "*/*",
             "content-type": "application/json",
@@ -42,19 +61,24 @@ class ChatService:
             "oai-language": oai_language,
         }
         self.base_headers.update(self.fp)
+
         if self.account_id:
             self.base_headers["chatgpt-account-id"] = self.account_id
         if auth_key:
             self.base_headers["authkey"] = auth_key
+
         await get_dpl(self)
 
     async def get_chat_requirements(self):
         return None
 
     async def prepare_send_conversation(self):
-        messages, self.prompt_tokens = await api_messages_to_chat(self, self.api_messages, upload_by_url)
+        messages, self.prompt_tokens = await api_messages_to_chat(
+            self, self.api_messages, upload_by_url
+        )
         self.chat_headers = self.base_headers.copy()
         self.chat_headers["accept"] = "text/event-stream"
+
         self.chat_request = {
             "action": "next",
             "messages": messages,
@@ -67,6 +91,7 @@ class ChatService:
             "force_use_sse": True,
             "suggestions": [],
         }
+
         if self.conversation_id:
             self.chat_request["conversation_id"] = self.conversation_id
 
@@ -78,15 +103,33 @@ class ChatService:
             timeout=60,
             stream=True,
         )
+
         if response.status_code != 200:
-            raise HTTPException(status_code=response.status_code, detail=response.text[:500])
+            body = (response.text or "").strip()
+            content_type = response.headers.get("content-type", "")
+            detail = (
+                f"Upstream ChatGPT HTTP {response.status_code}; "
+                f"content-type={content_type}; "
+                f"body={body[:500] if body else '<empty>'}"
+            )
+            raise HTTPException(status_code=response.status_code, detail=detail)
+
         if "text/event-stream" not in response.headers.get("Content-Type", ""):
             return await response.json()
+
         stream, started = await head_process_response(response.aiter_lines())
+
         if not started:
-            raise HTTPException(status_code=403, detail="Upstream did not return a conversation stream")
+            raise HTTPException(
+                status_code=502,
+                detail="ChatGPT returned no usable conversation stream",
+            )
+
         if self.data.get("stream", False):
-            return stream_response(self, stream, self.resp_model, self.max_tokens)
+            return stream_response(
+                self, stream, self.resp_model, self.max_tokens
+            )
+
         return await format_not_stream_response(
             stream_response(self, stream, self.resp_model, self.max_tokens),
             self.prompt_tokens,
