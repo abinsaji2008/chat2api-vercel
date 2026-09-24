@@ -24,6 +24,10 @@ retry_times = int(os.getenv('RETRY_TIMES', '3'))
 enable_gateway = is_true(os.getenv('ENABLE_GATEWAY', 'false'))
 chatgpt_cookies = os.getenv('CHATGPT_COOKIES', '').strip()
 
+# Runtime values expected by fp.py / ChatService.py
+user_agents_list = []
+impersonate_list = ['chrome124']
+
 def parse_cookie_header(value):
     if not value: return {}
     c = SimpleCookie()
@@ -42,10 +46,6 @@ chatgpt_cookie_dict = parse_cookie_header(chatgpt_cookies)
 authorization_list = [x for x in authorization.split(',') if x]
 chatgpt_base_url_list = [x.strip() for x in chatgpt_base_url.split(',') if x.strip()]
 proxy_url_list = [x.strip() for x in proxy_url.split(',') if x.strip()]
-
-# curl_cffi 0.7.3 supports chrome124, but chrome131 was added only in 0.8.0.
-# Keep the pinned dependency compatible with the impersonation target.
-impersonate_list = ['chrome124']
 
 try:
     with open('version.txt', encoding='utf-8') as f: version = f.read().strip()
