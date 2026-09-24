@@ -15,6 +15,7 @@ def is_true(value):
 api_prefix = os.getenv('API_PREFIX', '').strip('/')
 authorization = os.getenv('AUTHORIZATION', '').replace(' ', '')
 chatgpt_base_url = os.getenv('CHATGPT_BASE_URL', 'https://chatgpt.com').strip()
+chatgpt_auth_token = os.getenv('CHATGPT_AUTH_TOKEN', '').strip()
 auth_key = os.getenv('AUTH_KEY')
 proxy_url = os.getenv('PROXY_URL', '').strip()
 history_disabled = is_true(os.getenv('HISTORY_DISABLED', 'true'))
@@ -22,9 +23,8 @@ upload_by_url = is_true(os.getenv('UPLOAD_BY_URL', 'false'))
 oai_language = os.getenv('OAI_LANGUAGE', 'en-US')
 retry_times = int(os.getenv('RETRY_TIMES', '3'))
 enable_gateway = is_true(os.getenv('ENABLE_GATEWAY', 'false'))
-chatgpt_cookies = os.getenv('CHATGPT_COOKIES', '').strip()
 
-# Runtime values expected by fp.py / ChatService.py
+chatgpt_cookies = os.getenv('CHATGPT_COOKIES', '').strip()
 user_agents_list = []
 impersonate_list = ['chrome124']
 
@@ -54,3 +54,4 @@ except Exception:
 
 logger.info('Chat2API Vercel configuration loaded')
 logger.info(f'CHATGPT_COOKIES configured: {bool(chatgpt_cookie_dict)}')
+logger.info(f'CHATGPT_AUTH_TOKEN configured: {bool(chatgpt_auth_token)}')
