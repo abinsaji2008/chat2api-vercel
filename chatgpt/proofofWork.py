@@ -1,4 +1,5 @@
 import hashlib
+import os
 import json
 import random
 import re
@@ -16,7 +17,7 @@ from utils.configs import conversation_only
 cores = [8, 16, 24, 32]
 timeLayout = "%a %b %d %Y %H:%M:%S"
 
-cache = dc.Cache('./data/pow_config_cache')
+cache = dc.Cache(os.path.join(os.getenv('CHAT2API_DATA_DIR', '/tmp/chat2api'), 'pow_config_cache'))
 cached_scripts = []
 cached_dpl = ""
 cached_time = 0
