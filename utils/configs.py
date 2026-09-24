@@ -48,4 +48,4 @@ try:
 except Exception:
     version = 'unknown'
 logger.info('Chat2API Vercel configuration loaded')
-logger.info('CHATGPT_COOKIES configured: %s', bool(chatgpt_cookie_dict))
+logger.info(f'CHATGPT_COOKIES configured: {bool(chatgpt_cookie_dict)}')
