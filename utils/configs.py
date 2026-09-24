@@ -42,10 +42,15 @@ chatgpt_cookie_dict = parse_cookie_header(chatgpt_cookies)
 authorization_list = [x for x in authorization.split(',') if x]
 chatgpt_base_url_list = [x.strip() for x in chatgpt_base_url.split(',') if x.strip()]
 proxy_url_list = [x.strip() for x in proxy_url.split(',') if x.strip()]
-impersonate_list = ['chrome131']
+
+# curl_cffi 0.7.3 supports chrome124, but chrome131 was added only in 0.8.0.
+# Keep the pinned dependency compatible with the impersonation target.
+impersonate_list = ['chrome124']
+
 try:
     with open('version.txt', encoding='utf-8') as f: version = f.read().strip()
 except Exception:
     version = 'unknown'
+
 logger.info('Chat2API Vercel configuration loaded')
 logger.info(f'CHATGPT_COOKIES configured: {bool(chatgpt_cookie_dict)}')
