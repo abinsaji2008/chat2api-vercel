@@ -15,6 +15,7 @@ from utils.Client import Client
 from utils.configs import (
     chatgpt_base_url_list,
     chatgpt_cookie_dict,
+    chatgpt_auth_token,
     history_disabled,
     upload_by_url,
     auth_key,
@@ -34,7 +35,7 @@ class ChatService:
         self.proxy_url = self.fp.pop("proxy_url", None)
         self.impersonate = self.fp.pop("impersonate", "chrome124")
         self.user_agent = self.fp.get("user-agent")
-        self.origin_model = data.get("model", "gpt-4o")
+        self.origin_model = data.get("model", "gpt-5.6")
         self.resp_model = model_proxy.get(self.origin_model, self.origin_model)
         self.req_model = self.origin_model
         self.account_id = data.get("Chatgpt-Account-Id")
@@ -62,6 +63,13 @@ class ChatService:
         }
         self.base_headers.update(self.fp)
 
+        if chatgpt_auth_token:
+            token = chatgpt_auth_token
+            if token.lower().startswith("bearer "):
+                self.base_headers["authorization"] = token
+            else:
+                self.base_headers["authorization"] = f"Bearer {token}"
+
         if self.account_id:
             self.base_headers["chatgpt-account-id"] = self.account_id
         if auth_key:
@@ -85,11 +93,15 @@ class ChatService:
             "model": self.req_model,
             "parent_message_id": self.parent_message_id,
             "conversation_mode": {"kind": "primary_assistant"},
-            "timezone": "Asia/Kolkata",
+            "timezone": "Asia/Calcutta",
             "timezone_offset_min": 330,
             "history_and_training_disabled": self.history_disabled,
             "force_use_sse": True,
             "suggestions": [],
+            "supported_encodings": ["v1"],
+            "enable_message_followups": True,
+            "force_parallel_switch": "auto",
+            "client_prepare_state": "success",
         }
 
         if self.conversation_id:
@@ -97,7 +109,7 @@ class ChatService:
 
     async def send_conversation(self):
         response = await self.s.post_stream(
-            self.base_url + "/conversation",
+            self.base_url + "/f/conversation",
             headers=self.chat_headers,
             json=self.chat_request,
             timeout=60,
@@ -126,9 +138,7 @@ class ChatService:
             )
 
         if self.data.get("stream", False):
-            return stream_response(
-                self, stream, self.resp_model, self.max_tokens
-            )
+            return stream_response(self, stream, self.resp_model, self.max_tokens)
 
         return await format_not_stream_response(
             stream_response(self, stream, self.resp_model, self.max_tokens),
